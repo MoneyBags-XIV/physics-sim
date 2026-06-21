@@ -284,6 +284,10 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     global springs
     global collision_shapes
 
+    for mass in masses:
+        if mass.id == selected:
+            for pix in mass.trace_points:
+                canvas.delete(pix)
     masses = [mass for mass in masses if mass.id != selected]
     springs = [spring for spring in springs if spring.id != selected]
     collision_shapes = [shape for shape in collision_shapes if shape.id != selected]
@@ -370,7 +374,6 @@ def update_selected(canvas, mode, mass_menu, spring_menu, line_menu):
 
     canvas.update_idletasks()
     # canvas.update()
-
 
 
 def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
