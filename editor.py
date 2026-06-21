@@ -149,12 +149,25 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         last_click = None
         return
 
-
     overlapping = canvas.find_overlapping(x-10, y-10, x+10, y+10)
-    overlapping = [x for x in overlapping if not x in snap_lines]    
+    # overlapping = [x for x in overlapping if not x in snap_lines]
 
+    selectables = [x.id for x in collision_shapes + masses + springs]
+    overlapping = [x for x in overlapping if x in selectables and not x == selected]
 
     if not overlapping:
+        fill = 'red'
+        for spring in springs:
+            if spring.id == selected:
+                fill = 'black'
+                break
+        for shape in collision_shapes:
+            if shape.id == selected:
+                fill = 'black'
+                break
+        canvas.itemconfigure(selected, fill=fill)
+        
+        selected = None
         return
     
     if mode.get() != 'select':
