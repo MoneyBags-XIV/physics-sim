@@ -49,7 +49,7 @@ class Point:
         self.x_force = 0
         self.y_force = 0
 
-        self.handle_traces()
+        # self.handle_traces()
 
     def handle_traces(self):
 

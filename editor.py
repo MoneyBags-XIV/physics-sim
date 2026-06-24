@@ -43,17 +43,17 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
             last_click = None
 
     if mode.get() == 'mass':
-        mass_menu.place(x=10, y=130)
+        mass_menu.place(x=10, y=150)
         pause_update = True
         mass_menu.winfo_children()[6].variable.set('0')
         mass_menu.winfo_children()[8].variable.set('0')
         pause_update = False
  
     elif mode.get() == 'spring':
-        spring_menu.place(x=10, y=130)
+        spring_menu.place(x=10, y=150)
     
     elif mode.get() == 'line':
-        line_menu.place(x=10, y=130)
+        line_menu.place(x=10, y=150)
     
     elif mode.get() == 'select':
         delete.place(x=WIDTH-110, y=90)
@@ -63,7 +63,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for spring in springs:
             if spring.id == selected and not spring.rod:
-                spring_menu.place(x=10, y=130)
+                spring_menu.place(x=10, y=150)
                 pause_update = True
                 spring_menu.winfo_children()[1].set(spring.k)
                 spring_menu.winfo_children()[3].set(spring.c)
@@ -73,7 +73,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for shape in collision_shapes:
             if shape.id == selected:
-                line_menu.place(x=10, y=130)
+                line_menu.place(x=10, y=150)
                 pause_update = True
                 line_menu.winfo_children()[1].set(shape.friction)
                 line_menu.winfo_children()[3].set(shape.energy_return)
@@ -81,7 +81,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for mass in masses:
             if mass.id == selected:
-                mass_menu.place(x=10, y=130)
+                mass_menu.place(x=10, y=150)
                 pause_update = True
                 mass_menu.winfo_children()[1].set(mass.mass)
                 mass_menu.winfo_children()[2].variable.set(mass.static)
@@ -153,7 +153,12 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
     # overlapping = [x for x in overlapping if not x in snap_lines]
 
     selectables = [x.id for x in collision_shapes + masses + springs]
-    overlapping = [x for x in overlapping if x in selectables and not x == selected]
+    overlapping = [x for x in overlapping if x in selectables]
+
+    if selected in overlapping and len(overlapping) == 1:
+        return
+    
+    overlapping = [x for x in overlapping if x != selected]
 
     if not overlapping:
         fill = 'red'
@@ -239,13 +244,13 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
             if spring.id == selected:
                 if spring.rod:
                     return
-                spring_menu.place(x=10, y=130)
+                spring_menu.place(x=10, y=150)
                 return
         for shape in collision_shapes:
             if shape.id == selected:
-                line_menu.place(x=10, y=130)
+                line_menu.place(x=10, y=150)
                 return
-        mass_menu.place(x=10, y=130)
+        mass_menu.place(x=10, y=150)
         return
 
     if mode.get() != 'select':
@@ -282,6 +287,9 @@ def handle_motion(event, canvas):
     global last_click
     global grey_line
 
+    global mouse_pos
+    mouse_pos = (event.x, event.y)
+
     canvas.delete(grey_line)
     grey_line = None
 
@@ -290,6 +298,51 @@ def handle_motion(event, canvas):
     
     grey_line = canvas.create_line(event.x, event.y, last_click[0], last_click[1], fill='grey')
 
+
+def handle_drag(event, canvas, mode, timestep):
+    if mode != 'select':
+        return
+
+    global selected
+    global masses
+    global dragged
+
+    for mass in masses:
+        if mass.id == selected:
+            dragged = mass
+            handle_motion(event, canvas)
+            # delta_x = event.x - mass.x
+            # delta_y = event.y - mass.y
+            # mass.x_vel = delta_x/timestep
+            # mass.y_vel = delta_y/timestep
+            # mass.x = event.x
+            # mass.y = event.y
+            # mass.update_looks()
+            return
+
+def handle_release(event):
+    global dragged
+    if dragged:
+        dragged = None
+
+def update_dragged_mass(pos, old_pos, mode, timestep):
+    global dragged
+    global springs
+    if mode != 'select' or not dragged:
+        return
+    
+    delta_x = pos[0] - old_pos[0]
+    delta_y = pos[1] - old_pos[1]
+    dragged.x_vel = delta_x/timestep
+    dragged.y_vel = delta_y/timestep
+    dragged.x = pos[0]
+    dragged.y = pos[1]
+    dragged.x_force = 0
+    dragged.y_force = 0
+    dragged.update_looks()
+    for spring in springs:
+        if dragged == spring.point_a or dragged == spring.point_b:
+            spring.move()   # this method really should be named update_looks
 
 def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     global selected
@@ -443,30 +496,30 @@ def main():
     canvas.grid()
 
 
-    menu_bar = tk.Menu(root)
+    # menu_bar = tk.Menu(root)
 
-    file = tk.Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label="File", menu=file)
-    file.add_command(label='Save', command=None)
-    file.add_command(label='Load', command=None)
+    # file = tk.Menu(menu_bar, tearoff=0)
+    # menu_bar.add_cascade(label="File", menu=file)
+    # file.add_command(label='Save', command=None)
+    # file.add_command(label='Load', command=None)
 
     # file.entryconfig(0, state=tk.DISABLED)
 
-    file.add_separator()
+    # file.add_separator()
 
-    demos = tk.Menu(file, tearoff=0)
-    file.add_cascade(label='Demos', menu=demos)
+    # demos = tk.Menu(file, tearoff=0)
+    # file.add_cascade(label='Demos', menu=demos)
 
-    edit = tk.Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label='Edit', menu=edit)
-    edit.add_command(label='Undo', command=None)
-    edit.add_command(label='Redo', command=None)
+    # edit = tk.Menu(menu_bar, tearoff=0)
+    # menu_bar.add_cascade(label='Edit', menu=edit)
+    # edit.add_command(label='Undo', command=None)
+    # edit.add_command(label='Redo', command=None)
 
-    view = tk.Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label='View', menu=view)
-    view.add_command()
+    # view = tk.Menu(menu_bar, tearoff=0)
+    # menu_bar.add_cascade(label='View', menu=view)
+    # view.add_command()
 
-    root.config(menu= menu_bar)
+    # root.config(menu= menu_bar)
 
     play = tk.Button(canvas, text='Play/Pause', command=play_pressed, width=10, height=1)
     play.place(x=WIDTH-110, y=10)
@@ -528,11 +581,13 @@ def main():
 
     canvas.bind("<Button-1>", lambda event : handle_click(event, mode_value, mass_menu, spring_menu, line_menu))
     canvas.bind("<Motion>", lambda event : handle_motion(event, canvas))
+    canvas.bind("<B1-Motion>", lambda event : handle_drag(event, canvas, mode_value.get(), timestep))
+    canvas.bind("<ButtonRelease-1>", handle_release)
 
 
     #=====================MASS MENU=========================
     mass_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    mass_menu.place(x=10, y=130)
+    mass_menu.place(x=10, y=150)
 
     mass_label = tk.Label(mass_menu, text="Mass:")
     mass_label.pack()
@@ -577,7 +632,7 @@ def main():
 
     #=====================SPRING MENU=========================
     spring_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    spring_menu.place(x=10, y=130)
+    spring_menu.place(x=10, y=150)
 
     spring_constant_label = tk.Label(spring_menu, text="Spring Constant:")
     spring_constant_label.pack()
@@ -611,7 +666,7 @@ def main():
 
     #=====================COLLISION LINE MENU=========================
     line_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    line_menu.place(x=10, y=130)
+    line_menu.place(x=10, y=150)
 
     mu_label = tk.Label(line_menu, text="Mu:")
     mu_label.pack()
@@ -663,10 +718,16 @@ def main():
     grey_line = None
 
     global selected
+    global dragged
+
+    dragged = None
 
     global pause_update
     pause_update = False    # this is to fix an issue with the syncing of values with the ui
 
+    global mouse_pos
+    global old_mouse_pos
+    mouse_pos = old_mouse_pos = (0,0)
 
     springs = []
     masses = []
@@ -683,20 +744,27 @@ def main():
     start = time()
 
     while True:
-
-        energy = sum([x.mass*sqrt(x.x_vel**2 + x.y_vel**2) for x in masses])
-        KE.configure(text = 'Total KE: ' + str(round(energy, 2)))
         
-        try:
-            root.state()
-        except:
-            break
+        # try:
+        #     root.state()
+        # except:
+        #     break
 
         # canvas.update_idletasks()
         canvas.update()
 
+        update_dragged_mass(mouse_pos, old_mouse_pos, mode_value.get(), timestep)
+        old_mouse_pos = mouse_pos
+
+        for mass in masses:
+            mass.handle_traces()
+
         if paused:
+            sleep(timestep)
             continue
+            
+        energy = sum([x.mass*sqrt(x.x_vel**2 + x.y_vel**2) for x in masses])
+        KE.configure(text = 'Total KE: ' + str(round(energy, 2)))
 
         for spring in springs:
             spring.apply_forces()
@@ -731,9 +799,10 @@ def main():
                     pause_update = True
                     eq.set(spring.length)
                     pause_update = False
-        
+
         for mass in masses:
-            mass.move(timestep)
+            if mass != dragged:
+                mass.move(timestep)
         for spring in springs:
             spring.move()
 
