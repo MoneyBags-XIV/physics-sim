@@ -328,18 +328,21 @@ def handle_release(event):
 def update_dragged_mass(pos, old_pos, mode, timestep):
     global dragged
     global springs
+    global paused
     if mode != 'select' or not dragged:
         return
     
     delta_x = pos[0] - old_pos[0]
     delta_y = pos[1] - old_pos[1]
-    dragged.x_vel = delta_x/timestep
-    dragged.y_vel = delta_y/timestep
     dragged.x = pos[0]
     dragged.y = pos[1]
-    dragged.x_force = 0
-    dragged.y_force = 0
-    dragged.update_looks()
+    if not paused:
+        dragged.x_vel = delta_x/timestep
+        dragged.y_vel = delta_y/timestep
+        dragged.x_force = 0
+        dragged.y_force = 0
+    else:
+        dragged.update_looks()
     for spring in springs:
         if dragged == spring.point_a or dragged == spring.point_b:
             spring.move()   # this method really should be named update_looks
@@ -803,6 +806,8 @@ def main():
         for mass in masses:
             if mass != dragged:
                 mass.move(timestep)
+            else:
+                mass.update_looks()
         for spring in springs:
             spring.move()
 
