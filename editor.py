@@ -337,8 +337,12 @@ def update_dragged_mass(pos, old_pos, mode, timestep):
     dragged.x = pos[0]
     dragged.y = pos[1]
     if not paused:
-        dragged.x_vel = delta_x/timestep
-        dragged.y_vel = delta_y/timestep
+        if delta_x == 0 and delta_y == 0:
+            dragged.x_vel *= 0.9
+            dragged.y_vel *= 0.9
+        else:
+            dragged.x_vel = delta_x/timestep
+            dragged.y_vel = delta_y/timestep
         dragged.x_force = 0
         dragged.y_force = 0
     else:
@@ -748,10 +752,10 @@ def main():
 
     while True:
         
-        # try:
-        #     root.state()
-        # except:
-        #     break
+        try:
+            root.state()
+        except:
+            break
 
         # canvas.update_idletasks()
         canvas.update()
