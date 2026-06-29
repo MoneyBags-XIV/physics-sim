@@ -1,8 +1,9 @@
 from main import *
 from time import time
 from random import shuffle
+from tkinter import ttk
 
-WIDTH = 1200
+WIDTH = 1000
 HEIGHT = 600
 
 paused = True
@@ -30,10 +31,10 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
                 canvas.itemconfigure(selected, fill='black')
                 selected = None
 
-    mass_menu.place(x=-1000, y=-1000)
-    spring_menu.place(x=-1000, y=-1000)
-    line_menu.place(x=-1000, y=-1000)
-    delete.place(x=-1000, y=-1000)
+    mass_menu.pack_forget()
+    spring_menu.pack_forget()
+    line_menu.pack_forget()
+    delete.pack_forget()
 
     if mode.get() != 'line':
         if grey_line:
@@ -43,17 +44,17 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
             last_click = None
 
     if mode.get() == 'mass':
-        mass_menu.place(x=10, y=150)
+        mass_menu.pack()
         pause_update = True
         mass_menu.winfo_children()[6].variable.set('0')
         mass_menu.winfo_children()[8].variable.set('0')
         pause_update = False
  
     elif mode.get() == 'spring':
-        spring_menu.place(x=10, y=150)
+        spring_menu.pack()
     
     elif mode.get() == 'line':
-        line_menu.place(x=10, y=150)
+        line_menu.pack()
     
     elif mode.get() == 'select':
         delete.place(x=WIDTH-110, y=90)
@@ -63,7 +64,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for spring in springs:
             if spring.id == selected and not spring.rod:
-                spring_menu.place(x=10, y=150)
+                spring_menu.pack()
                 pause_update = True
                 spring_menu.winfo_children()[1].set(spring.k)
                 spring_menu.winfo_children()[3].set(spring.c)
@@ -73,7 +74,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for shape in collision_shapes:
             if shape.id == selected:
-                line_menu.place(x=10, y=150)
+                line_menu.pack()
                 pause_update = True
                 line_menu.winfo_children()[1].set(shape.friction)
                 line_menu.winfo_children()[3].set(shape.energy_return)
@@ -81,7 +82,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
         
         for mass in masses:
             if mass.id == selected:
-                mass_menu.place(x=10, y=150)
+                mass_menu.pack()
                 pause_update = True
                 mass_menu.winfo_children()[1].set(mass.mass)
                 mass_menu.winfo_children()[2].variable.set(mass.static)
@@ -186,9 +187,9 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
     if not selected or mode.get() == 'select':
 
         if mode.get() == 'select':
-            mass_menu.place(x=-1000, y=-1000)
-            spring_menu.place(x=-1000, y=-1000)
-            line_menu.place(x=-1000, y=-1000)
+            mass_menu.pack_forget()
+            spring_menu.pack_forget()
+            line_menu.pack_forget()
 
         fill = 'red'
         for spring in springs:
@@ -244,13 +245,13 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
             if spring.id == selected:
                 if spring.rod:
                     return
-                spring_menu.place(x=10, y=150)
+                spring_menu.pack()
                 return
         for shape in collision_shapes:
             if shape.id == selected:
-                line_menu.place(x=10, y=150)
+                line_menu.pack()
                 return
-        mass_menu.place(x=10, y=150)
+        mass_menu.pack()
         return
 
     if mode.get() != 'select':
@@ -375,9 +376,9 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
 
     selected = None
     if mode == 'select':
-        mass_menu.place(x=-1000, y=-1000)
-        spring_menu.place(x=-1000, y=-1000)
-        line_menu.place(x=-1000, y=-1000)
+        mass_menu.pack_forget()
+        spring_menu.pack_forget()
+        line_menu.pack_forget()
     canvas.update_idletasks()
     # canvas.update()
 
@@ -464,9 +465,9 @@ def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
     paused = True
 
     if mode == 'select':
-        mass_menu.place(x=-1000, y=-1000)
-        spring_menu.place(x=-1000, y=-1000)
-        line_menu.place(x=-1000, y=-1000)
+        mass_menu.pack_forget()
+        spring_menu.pack_forget()
+        line_menu.pack_forget()
 
     canvas.delete('all')
 
@@ -498,10 +499,12 @@ def main():
     root = tk.Tk()
     root.attributes('-type', 'dialog')              #This is for omarchy to not tile the window
     canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT)#, background='white')
-    root.geometry(str(WIDTH)+'x'+str(HEIGHT))
+    root.geometry(str(WIDTH + 200)+'x'+str(HEIGHT))
 
-    canvas.grid()
+    canvas.place(x=200, y=0)
 
+    tray = tk.Frame(root)#, highlightbackground='black', highlightthickness=1)#, width=200, height=HEIGHT)
+    tray.place(x=0, y=0)
 
     # menu_bar = tk.Menu(root)
 
@@ -526,35 +529,43 @@ def main():
     # menu_bar.add_cascade(label='View', menu=view)
     # view.add_command()
 
-    # root.config(menu= menu_bar)
+    # root.config(menu = menu_bar)
 
     play = tk.Button(canvas, text='Play/Pause', command=play_pressed, width=10, height=1)
     play.place(x=WIDTH-110, y=10)
+
+    ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
     modes = ['select', 'mass', 'spring', 'rod', 'line']
     mode_value = tk.StringVar(canvas, value='mass')
     mode_value.trace_add('write', lambda *args : change_mode(canvas, mode_value, mass_menu, spring_menu, line_menu, delete))
     # mode = tk.OptionMenu(canvas, mode_value, *modes)
     # mode.place(x=10, y=50)
-    mode_frame = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    mode_frame.place(x=10,y=10)
+    mode_frame = tk.Frame(tray)#canvas)#, highlightbackground='black', highlightthickness=1)
+    mode_frame.pack()
+    # mode_frame.place(x=10,y=10)
 
     for option in modes:
         ans = tk.Radiobutton(mode_frame, text=option, variable=mode_value, value=option)
         ans.pack()
+    
+    ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
-    gravity_frame = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    gravity_frame.place(x=215, y=10)
+    gravity_frame = tk.Frame(tray)#, highlightbackground='black', highlightthickness=1)
+    # gravity_frame.place(x=215, y=10)
+    gravity_frame.pack()#side=tk.TOP)
 
-    gravity_label = tk.Label(gravity_frame, text='Gravity (down):')
-    gravity_var = tk.IntVar(value=1)
+    ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
+    gravity_label = tk.Label(gravity_frame, text='Gravity\n(down):')
+    gravity_var = tk.IntVar(value=2)
     gravity = tk.Scale(gravity_frame, from_=0, to=5, orient=tk.HORIZONTAL, variable=gravity_var)
     gravity_label.grid(row=0, column=0)
     gravity.grid(row=0, column=1)
     # gravity_label.place(x=140, y=20)
     # gravity.place(x=250, y=10)
 
-    force_label = tk.Label(gravity_frame, text='Gravity\n(between bodies):')
+    force_label = tk.Label(gravity_frame, text='Gravity\n(between\nbodies):')
     force_var = tk.IntVar(value=0)
     force = tk.Scale(gravity_frame, from_=-10, to=10, orient=tk.HORIZONTAL, variable=force_var)
     force_label.grid(row=1, column=0)
@@ -565,8 +576,11 @@ def main():
     KE = tk.Label(canvas, text='Total KE: 0')
     KE.place(x=WIDTH-120, y=HEIGHT-30)
 
-    options = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    options.place(x=80, y=10)
+    options = tk.Frame(tray)#, highlightbackground='black', highlightthickness=1)
+    # options.place(x=80, y=10)
+    options.pack()#side=tk.TOP)
+
+    ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
     global snap
     global snap_lines
@@ -593,12 +607,12 @@ def main():
 
 
     #=====================MASS MENU=========================
-    mass_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    mass_menu.place(x=10, y=150)
+    mass_menu = tk.Frame(tray)#, highlightbackground='black', highlightthickness=1)
+    mass_menu.pack()
 
     mass_label = tk.Label(mass_menu, text="Mass:")
     mass_label.pack()
-    mass_var = tk.IntVar(value=3)
+    mass_var = tk.IntVar(value=2)
     mass = tk.Scale(mass_menu, from_=1, to=20, orient=tk.HORIZONTAL, variable=mass_var)
     mass.pack()
 
@@ -634,12 +648,12 @@ def main():
     trail.pack()
 
 
-    # mass_menu.place(x=-1000, y=-1000)
+    # mass_menu.pack_forget()
 
 
     #=====================SPRING MENU=========================
-    spring_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    spring_menu.place(x=10, y=150)
+    spring_menu = tk.Frame(tray)#, highlightbackground='black', highlightthickness=1)
+    spring_menu.pack()
 
     spring_constant_label = tk.Label(spring_menu, text="Spring Constant:")
     spring_constant_label.pack()
@@ -668,12 +682,12 @@ def main():
     eq = tk.Scale(spring_menu, from_=20, to=300, orient=tk.HORIZONTAL, variable=eq_var)
     eq.pack()
 
-    spring_menu.place(x=-1000, y=-1000)
+    spring_menu.pack_forget()
 
 
     #=====================COLLISION LINE MENU=========================
-    line_menu = tk.Frame(canvas, highlightbackground='black', highlightthickness=1)
-    line_menu.place(x=10, y=150)
+    line_menu = tk.Frame(tray)#, highlightbackground='black', highlightthickness=1)
+    line_menu.pack()
 
     mu_label = tk.Label(line_menu, text="Mu:")
     mu_label.pack()
@@ -689,7 +703,7 @@ def main():
     energy.set(0.9)
     energy.pack()
 
-    line_menu.place(x=-1000, y=-1000)
+    line_menu.pack_forget()
 
     update_func = lambda *args : update_selected(canvas, mode_value.get(), mass_menu, spring_menu, line_menu)
     mass_var.trace_add('write', update_func)
@@ -710,9 +724,8 @@ def main():
     reset.place(x=WIDTH-110, y=50)
 
     delete = tk.Button(canvas, text='Delete', command=lambda *args : delete_selected(canvas, mode_value.get(), mass_menu, spring_menu, line_menu), height=1, width=10)
-    delete.place(x=-1000, y=-1000)
+    delete.pack_forget()
     # delete.place(x=WIDTH-110, y=50)
-
 
     global masses
     global springs
@@ -741,10 +754,10 @@ def main():
     collision_shapes = []
 
     walls = (
-        Static_Collision_Line(canvas, (0,0), (WIDTH,0), 0.3, 0.7),
-        Static_Collision_Line(canvas, (0,0), (0,HEIGHT), 0.3, 0.7),
-        Static_Collision_Line(canvas, (WIDTH,0), (WIDTH,HEIGHT), 0.3, 0.7),
-        Static_Collision_Line(canvas, (0,HEIGHT), (WIDTH,HEIGHT), 0.3, 0.7)
+        Static_Collision_Line(canvas, (1,1), (WIDTH,1), 0.3, 0.7),
+        Static_Collision_Line(canvas, (1,1), (1,HEIGHT-1), 0.3, 0.7),
+        Static_Collision_Line(canvas, (WIDTH,1), (WIDTH,HEIGHT-1), 0.3, 0.7),
+        Static_Collision_Line(canvas, (1,HEIGHT-1), (WIDTH,HEIGHT-1), 0.3, 0.7)
     )
     collision_shapes += walls
 
