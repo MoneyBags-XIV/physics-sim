@@ -174,6 +174,9 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         canvas.itemconfigure(selected, fill=fill)
         
         selected = None
+        mass_menu.pack_forget()
+        spring_menu.pack_forget()
+        line_menu.pack_forget()
         return
     
     if mode.get() != 'select':
@@ -518,7 +521,7 @@ def main():
     # file.add_separator()
 
     # demos = tk.Menu(file, tearoff=0)
-    # file.add_cascade(label='Demos', menu=demos)
+    # file.add_cascade(label='Examples', menu=demos)
 
     # edit = tk.Menu(menu_bar, tearoff=0)
     # menu_bar.add_cascade(label='Edit', menu=edit)
