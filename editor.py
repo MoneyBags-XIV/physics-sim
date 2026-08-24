@@ -509,30 +509,30 @@ def main():
     tray = tk.Frame(root)#, highlightbackground='black', highlightthickness=1)#, width=200, height=HEIGHT)
     tray.place(x=0, y=0)
 
-    # menu_bar = tk.Menu(root)
+    menu_bar = tk.Menu(root)
 
-    # file = tk.Menu(menu_bar, tearoff=0)
-    # menu_bar.add_cascade(label="File", menu=file)
-    # file.add_command(label='Save', command=None)
-    # file.add_command(label='Load', command=None)
+    file = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label="File", menu=file)
+    file.add_command(label='Save', command=None)
+    file.add_command(label='Load', command=None)
 
-    # file.entryconfig(0, state=tk.DISABLED)
+    file.entryconfig(0, state=tk.DISABLED)
 
-    # file.add_separator()
+    file.add_separator()
 
-    # demos = tk.Menu(file, tearoff=0)
-    # file.add_cascade(label='Examples', menu=demos)
+    demos = tk.Menu(file, tearoff=0)
+    file.add_cascade(label='Examples', menu=demos)
 
-    # edit = tk.Menu(menu_bar, tearoff=0)
-    # menu_bar.add_cascade(label='Edit', menu=edit)
-    # edit.add_command(label='Undo', command=None)
-    # edit.add_command(label='Redo', command=None)
+    edit = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label='Edit', menu=edit)
+    edit.add_command(label='Undo', command=None)
+    edit.add_command(label='Redo', command=None)
 
-    # view = tk.Menu(menu_bar, tearoff=0)
-    # menu_bar.add_cascade(label='View', menu=view)
-    # view.add_command()
+    view = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label='View', menu=view)
+    view.add_command()
 
-    # root.config(menu = menu_bar)
+    root.config(menu = menu_bar)
 
     play = tk.Button(canvas, text='Play/Pause', command=play_pressed, width=10, height=1)
     play.place(x=WIDTH-110, y=10)
@@ -561,7 +561,7 @@ def main():
     ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
     gravity_label = tk.Label(gravity_frame, text='Gravity\n(down):')
-    gravity_var = tk.IntVar(value=2)
+    gravity_var = tk.IntVar(value=1)
     gravity = tk.Scale(gravity_frame, from_=0, to=5, orient=tk.HORIZONTAL, variable=gravity_var)
     gravity_label.grid(row=0, column=0)
     gravity.grid(row=0, column=1)
