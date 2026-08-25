@@ -1,4 +1,13 @@
+'''
+========== Projects to work on ==========
+play/pause icons
+
+
+'''
+
+
 from main import *
+from save import *
 from time import time
 from random import shuffle
 from tkinter import ttk
@@ -496,6 +505,70 @@ def update_grid(canvas):
         snap_lines.append(canvas.create_line(0, i*30, WIDTH, i*30, fill='grey'))
 
 
+def handle_undo():
+    global undo_history
+    global undo_index
+
+
+    if len(undo_history) < 2:
+        return
+
+    undo_index -= 1
+    
+    try:
+        a = undo_history[undo_index]
+    except:
+        print("Can't undo any further")
+
+    read_from_save(undo_history[undo_index])
+
+
+def handle_redo():
+    
+    global undo_history
+    global undo_index
+
+    if undo_index == -1:
+        return
+
+    undo_index += 1
+    read_from_save(undo_history[undo_index])
+
+
+def write_to_save():
+    global masses
+    global springs
+    global collision_shapes
+    # global paused
+    global gravity_var
+    global force_var
+    global snap
+    global walls_var
+    global collision_var
+
+    return Save(masses, springs, collision_shapes, gravity_var.get(), force_var.get(), snap.get(), walls_var.get(), collision_var.get())
+
+def read_from_save(save):
+    global masses
+    global springs
+    global collision_shapes
+    global gravity_var
+    global force_var
+    global snap
+    global walls_var
+    global collision_var
+
+    global undo_history
+    global undo_index
+    undo_history = []
+    undo_index = -1
+
+    masses, springs, collision_shapes = save.masses, save.springs, save.lines
+    gravity_var.set(save.gravity)
+    snap.set(save.snap)
+    walls_var.set(save.walls)
+    collision_var.set(save.collisions)
+
 def main():
     timestep = 0.005
 
@@ -561,6 +634,7 @@ def main():
     ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
     gravity_label = tk.Label(gravity_frame, text='Gravity\n(down):')
+    global gravity_var
     gravity_var = tk.IntVar(value=1)
     gravity = tk.Scale(gravity_frame, from_=0, to=5, orient=tk.HORIZONTAL, variable=gravity_var)
     gravity_label.grid(row=0, column=0)
@@ -569,6 +643,7 @@ def main():
     # gravity.place(x=250, y=10)
 
     force_label = tk.Label(gravity_frame, text='Gravity\n(between\nbodies):')
+    global force_var
     force_var = tk.IntVar(value=0)
     force = tk.Scale(gravity_frame, from_=-10, to=10, orient=tk.HORIZONTAL, variable=force_var)
     force_label.grid(row=1, column=0)
@@ -593,11 +668,13 @@ def main():
     grid.pack()
     # grid.place(x=100, y=90)
 
+    global walls_var
     walls_var = tk.IntVar(value=1)
     use_walls = tk.Checkbutton(options, text='Walls', variable=walls_var)
     use_walls.pack()
     # use_walls.place(x=100, y=120)
 
+    global collision_var
     collision_var = tk.IntVar(value=1)
     collision = tk.Checkbutton(options, text='Particle Collisions', variable=collision_var)
     collision.pack()
@@ -729,6 +806,11 @@ def main():
     delete = tk.Button(canvas, text='Delete', command=lambda *args : delete_selected(canvas, mode_value.get(), mass_menu, spring_menu, line_menu), height=1, width=10)
     delete.pack_forget()
     # delete.place(x=WIDTH-110, y=50)
+
+    global undo_history
+    global undo_index
+    undo_history = []
+    undo_index = -1
 
     global masses
     global springs
