@@ -24,10 +24,31 @@ class Point:
 
         self.radius = sqrt(mass) / DENSITY
 
+        self.create_display_self(canvas)
+
+    def create_display_self(self, canvas):
         self.canvas = canvas
         self.id = self.canvas.create_oval(0,0,2*self.radius,2*self.radius,fill='red')
         self.canvas.move(self.id, self.x - self.radius, self.y - self.radius)
     
+    def is_equal(self, other):
+        if self.x != other.x or self.y != other.y:
+            return False
+        
+        if self.mass != other.mass:
+            return False
+        
+        if self.energy_return != other.energy_return or self.static != other.static:
+            return False
+        
+        if self.trace != other.trace:
+            return False
+        
+        if self.x_vel != other.x_vel or self.y_vel != other.y_vel:
+            return False
+        
+        return True
+
     def apply_force(self, x_comp, y_comp):
         self.x_force += x_comp
         self.y_force += y_comp
@@ -187,13 +208,25 @@ class Spring:
         self.length = self.old_length = distance(point_a, point_b)
         self.eq_len = eq_len if eq_len else self.length
 
-        self.canvas = canvas
-
         self.rod = False
 
-        self.create_display_self()
+        self.create_display_self(canvas)
+
+    def is_equal(self, other):
+
+        if self.k != other.k or self.c != other.c:
+            return False
+        
+        if self.point_a.x != other.point_a.x or self.point_a.y != other.point_a.y:
+            return False
+        
+        if self.point_b.x != other.point_b.x or self.point_b.y != other.point_b.y:
+            return False
+        
+        return True
     
-    def create_display_self(self):
+    def create_display_self(self, canvas):
+        self.canvas = canvas
         self.id = self.canvas.create_line(self.point_a.x, self.point_a.y, self.point_b.x, self.point_b.y, dash=(10,10), width=2)
 
     def apply_forces(self):
@@ -227,25 +260,39 @@ class Rod(Spring):
     def __init__(self, canvas, point_a, point_b):
         super().__init__(canvas, point_a, point_b, 20000, 5000)
         self.rod = True
-    def create_display_self(self):
+
+    def create_display_self(self, canvas):
+        self.canvas = canvas
         self.id = self.canvas.create_line(self.point_a.x, self.point_a.y, self.point_b.x, self.point_b.y, width=2)
 
 
 class Static_Collision_Polygon:
     def __init__(self, canvas, friction, energy_return, points, fill='black'):
-        self.canvas = canvas
         self.friction = friction
         self.energy_return = energy_return
         self.points = points
         self.lines = []
 
-        self.id = self.canvas.create_polygon(*sum(points, ()), fill=fill)
+        self.create_display_self(canvas)
 
         for i in range(len(points)):
             if i == len(points)-1:
-                self.lines.append(Static_Collision_Line(canvas, points[i], points[0], friction, energy_return, display=False))
+                self.lines.append(Static_Collision_Line(self.canvas, points[i], points[0], friction, energy_return, display=False))
                 continue
-            self.lines.append(Static_Collision_Line(canvas, points[i], points[i+1], friction, energy_return, display=False))
+            self.lines.append(Static_Collision_Line(self.canvas, points[i], points[i+1], friction, energy_return, display=False))
+
+    def create_display_self(self, canvas):
+        self.canvas = canvas
+        self.id = self.canvas.create_polygon(*sum(points, ()), fill=fill)
+
+
+    def is_equal(self, other):
+        
+        for x, y in zip(self.lines, other.lines):
+            if not x.is_equal(y):
+                return False
+
+        return True
 
     def handle_collisions(self, masses):
         for line in self.lines:
@@ -254,20 +301,37 @@ class Static_Collision_Polygon:
 
 class Static_Collision_Line:
     def __init__(self, canvas, coord_a, coord_b, friction, energy_return, display=True):
-        self.canvas = canvas
         self.coord_a = coord_a
         self.coord_b = coord_b
         self.friction = friction
         self.energy_return = energy_return
+        self.display = display
 
         if coord_a[0] == coord_b[0] and coord_a[1] < coord_b[1]:
             self.coord_a, self.coord_b = coord_b, coord_a
         elif coord_a[1] == coord_b[1] and coord_a[0] > coord_b[0]:
             self.coord_a, self.coord_b = coord_b, coord_a
-
-        self.id = self.canvas.create_line(*coord_a, *coord_b, width=2, capstyle=tk.ROUND) if display else None
+        
+        self.create_display_self(canvas)
 
         self.set_end_orth_lines()
+    
+    def create_display_self(self, canvas):
+        self.canvas = canvas
+        self.id = self.canvas.create_line(*self.coord_a, *self.coord_b, width=2, capstyle=tk.ROUND) if self.display else None
+
+
+    def is_equal(self, other):
+        if self.coord_a != other.coord_a or self.coord_b != other.coord_b:
+            return False
+
+        if self.friction != other.friction:
+            return False
+        
+        if self.energy_return != other.energy_return:
+            return False
+
+        return True
     
     def update_looks(self):
         self.id = self.canvas.create_line(*self.coord_a, *self.coord_b, width=2, capstyle=tk.ROUND)

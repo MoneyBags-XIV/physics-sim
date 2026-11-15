@@ -136,6 +136,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
             masses.append(Point(canvas, round(x/30)*30, round(y/30)*30, mass, static=static, energy_return=energy_return, y_vel=y_vel, x_vel=x_vel, trace=trail_length))
         canvas.update_idletasks()
         # canvas.update()
+        # update_undo_hist()
         return
 
     if mode.get() == 'line':
@@ -157,6 +158,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         # canvas.update()
 
         last_click = None
+        # update_undo_hist()
         return
 
     overlapping = canvas.find_overlapping(x-10, y-10, x+10, y+10)
@@ -292,6 +294,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
 
         canvas.itemconfigure(selected, fill='red')
         selected = None
+        # update_undo_hist()
 
         return
 
@@ -338,6 +341,20 @@ def handle_release(event):
     if dragged:
         dragged = None
 
+
+def handle_key_press(event):
+
+    key = event.char
+
+    if key == 'z':
+        handle_undo()
+
+    elif key == 'y':
+        handle_redo()
+    
+    elif key == ' ':
+        play_pressed()
+
 def update_dragged_mass(pos, old_pos, mode, timestep):
     global dragged
     global springs
@@ -363,6 +380,8 @@ def update_dragged_mass(pos, old_pos, mode, timestep):
     for spring in springs:
         if dragged == spring.point_a or dragged == spring.point_b:
             spring.move()   # this method really should be named update_looks
+    
+    # update_undo_hist()
 
 def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     global selected
@@ -393,6 +412,8 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
         line_menu.pack_forget()
     canvas.update_idletasks()
     # canvas.update()
+
+    # update_undo_hist()
 
 
 def update_selected(canvas, mode, mass_menu, spring_menu, line_menu):
@@ -435,11 +456,13 @@ def update_selected(canvas, mode, mass_menu, spring_menu, line_menu):
         use_eq = spring_menu.winfo_children()[5].variable.get()
         if use_eq:
             ans.eq_len = spring_menu.winfo_children()[7].get()
+        # update_undo_hist()
         return
     
     elif is_shape:
         ans.friction = float(line_menu.winfo_children()[1].get())
         ans.energy_return = float(line_menu.winfo_children()[3].get())
+        # update_undo_hist()
         return
     
     ans.update_mass(mass_menu.winfo_children()[1].get())
@@ -460,6 +483,7 @@ def update_selected(canvas, mode, mass_menu, spring_menu, line_menu):
 
     canvas.update_idletasks()
     # canvas.update()
+    # update_undo_hist()
 
 
 def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
@@ -486,15 +510,16 @@ def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
     for shape in collision_shapes:
         shape.update_looks()
     
-    update_grid(canvas)
+    update_grid()
 
     canvas.update_idletasks()
     # canvas.update()
 
 
-def update_grid(canvas):
+def update_grid():
     global snap
     global snap_lines
+    global canvas
     if not snap.get():
         for line in snap_lines:
             canvas.delete(line)
@@ -505,22 +530,37 @@ def update_grid(canvas):
         snap_lines.append(canvas.create_line(0, i*30, WIDTH, i*30, fill='grey'))
 
 
+def update_undo_hist(event):
+    global undo_history
+    global undo_index
+
+    a = write_to_save()
+
+    if not a.is_equal(undo_history[undo_index]):
+        undo_history = undo_history if undo_index == -1 else undo_history[:undo_index+1]
+        undo_history.append(a)
+        undo_index = -1
+
+    if len(undo_history) > 20:
+        del undo_history[0]
+
+
 def handle_undo():
     global undo_history
     global undo_index
 
-
-    if len(undo_history) < 2:
-        return
+    # if len(undo_history) < 2:
+    #     return
 
     undo_index -= 1
     
     try:
         a = undo_history[undo_index]
     except:
-        print("Can't undo any further")
-
-    read_from_save(undo_history[undo_index])
+        undo_index += 1
+        return
+    
+    read_from_save(a)
 
 
 def handle_redo():
@@ -558,22 +598,43 @@ def read_from_save(save):
     global walls_var
     global collision_var
 
+    global canvas
+
+    global selected
+    selected = None
+
     global undo_history
     global undo_index
-    undo_history = []
-    undo_index = -1
+    # undo_history = []
+    # undo_index = -1
+
+    # print(len(save.masses))
+    # print(len(masses))
+
+    save.refresh_canvas(canvas)
 
     masses, springs, collision_shapes = save.masses, save.springs, save.lines
+    # masses = [copy(mass) for mass in save.masses]
+    # springs = [copy(spring) for spring in save.springs]
+    # collision_shapes = [copy(line) for line in save.lines]
+
+    save.desync()
+
     gravity_var.set(save.gravity)
     snap.set(save.snap)
     walls_var.set(save.walls)
     collision_var.set(save.collisions)
 
+    update_grid()
+
 def main():
+
     timestep = 0.005
 
     root = tk.Tk()
     root.attributes('-type', 'dialog')              #This is for omarchy to not tile the window
+
+    global canvas
     canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT)#, background='white')
     root.geometry(str(WIDTH + 200)+'x'+str(HEIGHT))
 
@@ -598,7 +659,7 @@ def main():
 
     edit = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='Edit', menu=edit)
-    edit.add_command(label='Undo', command=None)
+    edit.add_command(label='Undo', command=handle_undo)
     edit.add_command(label='Redo', command=None)
 
     view = tk.Menu(menu_bar, tearoff=0)
@@ -664,7 +725,7 @@ def main():
     global snap_lines
     snap = tk.IntVar(value=0)
     snap_lines = []
-    grid = tk.Checkbutton(options, text='Snap to grid', variable=snap, command=lambda *args : update_grid(canvas))
+    grid = tk.Checkbutton(options, text='Snap to grid', variable=snap, command=lambda *args : update_grid())
     grid.pack()
     # grid.place(x=100, y=90)
 
@@ -684,6 +745,9 @@ def main():
     canvas.bind("<Motion>", lambda event : handle_motion(event, canvas))
     canvas.bind("<B1-Motion>", lambda event : handle_drag(event, canvas, mode_value.get(), timestep))
     canvas.bind("<ButtonRelease-1>", handle_release)
+    
+    root.bind("<Key>", handle_key_press)
+    root.bind("<ButtonRelease-1>", update_undo_hist)
 
 
     #=====================MASS MENU=========================
@@ -809,7 +873,6 @@ def main():
 
     global undo_history
     global undo_index
-    undo_history = []
     undo_index = -1
 
     global masses
@@ -847,6 +910,9 @@ def main():
     collision_shapes += walls
 
     start = time()
+
+    undo_history = [write_to_save()]
+
 
     while True:
         
