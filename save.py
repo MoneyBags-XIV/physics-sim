@@ -42,6 +42,14 @@ class Save:
         for line in self.lines:
             line.create_display_self(canvas)
     
+    def clear_canvas_refs(self):
+        for mass in self.masses:
+            mass.canvas = None
+        for spring in self.springs:
+            spring.canvas = None
+        for line in self.lines:
+            line.canvas = None
+    
     def is_equal(self, other):
 
         if len(self.masses) != len(other.masses): return False

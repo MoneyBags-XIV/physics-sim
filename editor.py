@@ -1,6 +1,20 @@
 '''
+========== PSA ==========
+I am aware that this code is a huge hairball.
+It started out as just a quick way to test the physics
+in main, and so it was never designed for scalability.
+At some point, I hope to refactor everything, especially
+fixing up the menu system and the nightmarish mess of 
+globals. But that would take so much energy from me, 
+so maybe later. 
+
+
+
 ========== Projects to work on ==========
 play/pause icons
+preserve selection through undo/redo
+out of bounds garbage collector
+framerate indicator
 
 
 '''
@@ -10,7 +24,8 @@ from main import *
 from save import *
 from time import time
 from random import shuffle
-from tkinter import ttk
+from tkinter import ttk, filedialog as fd
+from pickle import dump, load
 
 WIDTH = 1000
 HEIGHT = 600
@@ -30,7 +45,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
     global grey_line
     global pause_update
 
-    if mode.get() != 'select' or mode.get() == 'line':
+    if mode.get() != '(1) select' or mode.get() == '(5) line':
         for spring in springs:
             if selected == spring.id:
                 canvas.itemconfigure(selected, fill='black')
@@ -45,27 +60,27 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
     line_menu.pack_forget()
     delete.pack_forget()
 
-    if mode.get() != 'line':
+    if mode.get() != '(5) line':
         if grey_line:
             canvas.delete(grey_line)
             grey_line = None
         if last_click:
             last_click = None
 
-    if mode.get() == 'mass':
+    if mode.get() == '(2) mass':
         mass_menu.pack()
         pause_update = True
         mass_menu.winfo_children()[6].variable.set('0')
         mass_menu.winfo_children()[8].variable.set('0')
         pause_update = False
  
-    elif mode.get() == 'spring':
+    elif mode.get() == '(3) spring':
         spring_menu.pack()
     
-    elif mode.get() == 'line':
+    elif mode.get() == '(5) line':
         line_menu.pack()
     
-    elif mode.get() == 'select':
+    elif mode.get() == '(1) select':
         delete.place(x=WIDTH-110, y=90)
         
         if not selected:
@@ -102,7 +117,7 @@ def change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete):
                 pause_update = False
 
 
-def handle_click(event, mode, mass_menu, spring_menu, line_menu):
+def handle_click(event, mode, mass_menu, spring_menu, line_menu, root):
 
     global selected
     global masses
@@ -113,11 +128,13 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
     global snap
     global snap_lines
 
+    root.focus()
+
     canvas = event.widget
     x = canvas.canvasx(event.x)
     y = canvas.canvasy(event.y)
     
-    if mode.get() == 'mass':
+    if mode.get() == '(2) mass':
         mass = mass_menu.winfo_children()[1].get()
         static = mass_menu.winfo_children()[2].variable.get()
         energy_return = float(mass_menu.winfo_children()[4].get())
@@ -139,7 +156,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         # update_undo_hist()
         return
 
-    if mode.get() == 'line':
+    if mode.get() == '(5) line':
         if not last_click:
             if not snap.get():
                 last_click = (x,y)
@@ -190,7 +207,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         line_menu.pack_forget()
         return
     
-    if mode.get() != 'select':
+    if mode.get() != '(1) select':
         for spring in springs:
             if spring.id == overlapping[0]:
                 return
@@ -198,9 +215,9 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
             if shape.id == overlapping[0]:
                 return
     
-    if not selected or mode.get() == 'select':
+    if not selected or mode.get() == '(1) select':
 
-        if mode.get() == 'select':
+        if mode.get() == '(1) select':
             mass_menu.pack_forget()
             spring_menu.pack_forget()
             line_menu.pack_forget()
@@ -252,7 +269,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         canvas.update_idletasks()
         # canvas.update()
 
-        if mode.get() != 'select':
+        if mode.get() != '(1) select':
             return
 
         for spring in springs:
@@ -268,7 +285,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         mass_menu.pack()
         return
 
-    if mode.get() != 'select':
+    if mode.get() != '(1) select':
         point_a = None
         point_b = None
 
@@ -281,7 +298,7 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu):
         if point_a == point_b:
             return
         
-        if mode.get() == 'rod':
+        if mode.get() == '(4) rod':
             springs.append(Rod(canvas, point_a, point_b))
         
         else:
@@ -316,7 +333,7 @@ def handle_motion(event, canvas):
 
 
 def handle_drag(event, canvas, mode, timestep):
-    if mode != 'select':
+    if mode != '(1) select':
         return
 
     global selected
@@ -342,11 +359,16 @@ def handle_release(event):
         dragged = None
 
 
-def handle_key_press(event):
+def handle_key_press(event, mode, mass_menu, spring_menu, line_menu, delete, x_vel, y_vel, root):
 
     key = event.char
 
-    if key == 'z':
+    global canvas
+
+    if event.keysym == "Escape" or event.keysym == "Return":
+        root.focus()
+
+    elif key == 'z':
         handle_undo()
 
     elif key == 'y':
@@ -355,11 +377,32 @@ def handle_key_press(event):
     elif key == ' ':
         play_pressed()
 
+    elif key == 's':
+        save_to_file()
+    
+    # if x_vel['state'] == 'disabled' or y_vel['state'] == 'disabled':
+    if root.focus_get() == x_vel or root.focus_get() == y_vel:
+        return
+
+    if key in ['1', '2', '3', '4', '5']:
+        if key == '1':
+            mode.set("(1) select")
+        elif key == '2':
+            mode.set("(2) mass")
+        elif key == '3':
+            mode.set("(3) spring")
+        elif key == '4':
+            mode.set("(4) rod")
+        elif key == '5':
+            mode.set("(5) line")
+        change_mode(canvas, mode, mass_menu, spring_menu, line_menu, delete)
+
+
 def update_dragged_mass(pos, old_pos, mode, timestep):
     global dragged
     global springs
     global paused
-    if mode != 'select' or not dragged:
+    if mode != '(1) select' or not dragged:
         return
     
     delta_x = pos[0] - old_pos[0]
@@ -389,6 +432,10 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     global springs
     global collision_shapes
 
+    for i in range(4):
+        if selected == collision_shapes[i].id:
+            return
+
     for mass in masses:
         if mass.id == selected:
             for pix in mass.trace_points:
@@ -406,7 +453,7 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     canvas.delete(*spring_ids)
 
     selected = None
-    if mode == 'select':
+    if mode == '(1) select':
         mass_menu.pack_forget()
         spring_menu.pack_forget()
         line_menu.pack_forget()
@@ -419,7 +466,7 @@ def delete_selected(canvas, mode, mass_menu, spring_menu, line_menu):
 def update_selected(canvas, mode, mass_menu, spring_menu, line_menu):
     global pause_update
     
-    if mode != 'select' or pause_update:
+    if mode != '(1) select' or pause_update:
         return
 
     global selected
@@ -500,7 +547,7 @@ def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
     selected = None
     paused = True
 
-    if mode == 'select':
+    if mode == '(1) select':
         mass_menu.pack_forget()
         spring_menu.pack_forget()
         line_menu.pack_forget()
@@ -623,9 +670,29 @@ def read_from_save(save):
     gravity_var.set(save.gravity)
     snap.set(save.snap)
     walls_var.set(save.walls)
+    force_var.set(save.force)
     collision_var.set(save.collisions)
 
     update_grid()
+
+
+def save_to_file():
+    file = fd.asksaveasfile(initialdir="saves", filetypes=[("Physics Sim Files", "*.phys"), ("All Files", "*.*")], defaultextension=".phys", mode='wb')
+    if not file:
+        return
+
+    save_state = write_to_save()
+    save_state.clear_canvas_refs()
+
+    dump(save_state, file)
+
+    file.close()
+
+def load_from_file():
+    file = fd.askopenfile(initialdir="saves", filetypes=[("Physics Sim Files", "*.phys"), ("All Files", "*.*")], mode='rb')
+    ans = load(file)
+    file.close()
+    read_from_save(ans)
 
 def main():
 
@@ -647,10 +714,10 @@ def main():
 
     file = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="File", menu=file)
-    file.add_command(label='Save', command=None)
-    file.add_command(label='Load', command=None)
+    file.add_command(label='Save', command=save_to_file)
+    file.add_command(label='Load', command=load_from_file)
 
-    file.entryconfig(0, state=tk.DISABLED)
+    # file.entryconfig(0, state=tk.DISABLED)
 
     file.add_separator()
 
@@ -673,8 +740,8 @@ def main():
 
     ttk.Separator(tray, orient=tk.HORIZONTAL).pack(fill=tk.X)
 
-    modes = ['select', 'mass', 'spring', 'rod', 'line']
-    mode_value = tk.StringVar(canvas, value='mass')
+    modes = ['(1) select', '(2) mass', '(3) spring', '(4) rod', '(5) line']
+    mode_value = tk.StringVar(canvas, value='(2) mass')
     mode_value.trace_add('write', lambda *args : change_mode(canvas, mode_value, mass_menu, spring_menu, line_menu, delete))
     # mode = tk.OptionMenu(canvas, mode_value, *modes)
     # mode.place(x=10, y=50)
@@ -741,12 +808,11 @@ def main():
     collision.pack()
     # collision.place(x=100, y=150)
 
-    canvas.bind("<Button-1>", lambda event : handle_click(event, mode_value, mass_menu, spring_menu, line_menu))
+    canvas.bind("<Button-1>", lambda event : handle_click(event, mode_value, mass_menu, spring_menu, line_menu, root))
     canvas.bind("<Motion>", lambda event : handle_motion(event, canvas))
     canvas.bind("<B1-Motion>", lambda event : handle_drag(event, canvas, mode_value.get(), timestep))
     canvas.bind("<ButtonRelease-1>", handle_release)
     
-    root.bind("<Key>", handle_key_press)
     root.bind("<ButtonRelease-1>", update_undo_hist)
 
 
@@ -864,6 +930,8 @@ def main():
     energy_var.trace_add('write', update_func)
 
 
+    root.bind("<Key>", lambda event : handle_key_press(event, mode_value, mass_menu, spring_menu, line_menu, delete, x_vel, y_vel, root))
+
     reset = tk.Button(canvas, text='Clear', command=lambda *args : reset_canvas(canvas, mode_value.get(), mass_menu, spring_menu, line_menu), height=1, width=10)
     reset.place(x=WIDTH-110, y=50)
 
@@ -948,7 +1016,7 @@ def main():
             for shape in collision_shapes:
                 shape.handle_collisions(masses)
         else:
-            for shape in [x for x in collision_shapes if not x in walls]:
+            for shape in collision_shapes[4:]: #[x for x in collision_shapes if not x in walls]:
                 shape.handle_collisions(masses)
         
         for i, mass in enumerate(masses):
@@ -958,7 +1026,7 @@ def main():
             for i, mass in enumerate(masses):
                 mass.handle_collisions(masses[i+1:])
         
-        if selected and mode_value.get() == 'select':
+        if selected and mode_value.get() == '(1) select':
             for mass in masses:
                 if mass.id == selected:
                     pause_update = True

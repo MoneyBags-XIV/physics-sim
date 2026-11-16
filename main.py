@@ -346,20 +346,20 @@ class Static_Collision_Line:
                 [1,0]
             ])
 
-            self.func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
-            self.line1_func = lambda x : self.coord_a[1]
-            self.line2_func = lambda x : self.coord_b[1]
+            # self.func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
+            # self.line1_func = lambda x : self.coord_a[1]
+            # self.line2_func = lambda x : self.coord_b[1]
             return
 
         if self.coord_a[1] == self.coord_b[1]:  # handles flat surfaces
             self.change_base_matrix = self.change_back_matrix = np.array([
                 [1,0],
-                [0,-1]  # the sign here is to handle quirks with directionality
+                [0,-1]
             ])
 
-            self.func = lambda x : self.coord_a[1]
-            self.line1_func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
-            self.line2_func = lambda x : np.inf if x > self.coord_b[0] else -1 * np.inf
+            # self.func = lambda x : self.coord_a[1]
+            # self.line1_func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
+            # self.line2_func = lambda x : np.inf if x > self.coord_b[0] else -1 * np.inf
             return
 
         m = self.m = (self.coord_b[1] - self.coord_a[1])/(self.coord_b[0] - self.coord_a[0])
@@ -374,14 +374,38 @@ class Static_Collision_Line:
         ])
         self.change_base_matrix = inverse(self.change_back_matrix)#np.linalg.inv(self.change_back_matrix)
 
-        self.func = lambda x : m*(x-self.coord_a[0]) + self.coord_a[1]
+        # self.func = lambda x : m*(x-self.coord_a[0]) + self.coord_a[1]
         
-        if self.coord_a[1] > self.coord_b[1]:
-            self.line1_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
-            self.line2_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
+        # if self.coord_a[1] > self.coord_b[1]:
+        #     self.line1_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
+        #     self.line2_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
+        # else:
+        #     self.line1_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
+        #     self.line2_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
+
+    def get_line_funcs(self):
+        if self.coord_a[0] == self.coord_b[0]:
+            func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
+            line1_func = lambda x : self.coord_a[1]
+            line2_func = lambda x : self.coord_b[1]
+        elif self.coord_a[1] == self.coord_b[1]:
+            func = lambda x : self.coord_a[1]
+            line1_func = lambda x : np.inf if x > self.coord_a[0] else -1 * np.inf
+            line2_func = lambda x : np.inf if x > self.coord_b[0] else -1 * np.inf
         else:
-            self.line1_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
-            self.line2_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
+            m = self.m = (self.coord_b[1] - self.coord_a[1])/(self.coord_b[0] - self.coord_a[0])
+            ortho_m = (-1)/m
+
+            func = lambda x : m*(x-self.coord_a[0]) + self.coord_a[1]
+        
+            if self.coord_a[1] > self.coord_b[1]:
+                line1_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
+                line2_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
+            else:
+                line1_func = lambda x : ortho_m*(x-self.coord_b[0]) + self.coord_b[1]
+                line2_func = lambda x : ortho_m*(x-self.coord_a[0]) + self.coord_a[1]
+        
+        return func, line1_func, line2_func
     
     def change_base(self, vector):
         return self.change_base_matrix @ vector
@@ -389,9 +413,12 @@ class Static_Collision_Line:
         return self.change_back_matrix @ vector
 
     def handle_collisions(self, masses):
+
+        func, line1_func, line2_func = self.get_line_funcs()
+
         line_collidables = []
         for mass in masses:
-            if mass.y > self.line1_func(mass.x) or mass.y < self.line2_func(mass.x):
+            if mass.y > line1_func(mass.x) or mass.y < line2_func(mass.x):
                 continue
 
             line_collidables.append(mass)
@@ -409,7 +436,7 @@ class Static_Collision_Line:
                 delta = mass.radius - dist
                 b = self.change_base((mass.x, mass.y))
 
-                if mass.y > self.func(mass.x):
+                if mass.y > func(mass.x):
                     b[1] -= delta
                 else:
                     b[1] += delta
