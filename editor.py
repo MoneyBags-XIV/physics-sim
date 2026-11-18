@@ -1,6 +1,6 @@
 '''
 ========== PSA ==========
-I am aware that this code is a huge hairball.
+I am aware that this code is kind of a hairball.
 It started out as just a quick way to test the physics
 in main, and so it was never designed for scalability.
 At some point, I hope to refactor everything, especially
@@ -24,7 +24,7 @@ from main import *
 from save import *
 from time import time
 from random import shuffle
-from tkinter import ttk, filedialog as fd
+from tkinter import ttk, filedialog as fd, Toplevel
 from pickle import dump, load
 
 WIDTH = 1000
@@ -127,6 +127,12 @@ def handle_click(event, mode, mass_menu, spring_menu, line_menu, root):
     global pause_update
     global snap
     global snap_lines
+    global top
+
+    try:
+        top.destroy()
+    except:
+        pass
 
     root.focus()
 
@@ -563,6 +569,148 @@ def reset_canvas(canvas, mode, mass_menu, spring_menu, line_menu):
     # canvas.update()
 
 
+def open_help_menu(root):
+
+    global top
+
+    top = Toplevel()
+    top.geometry("400x" + str(HEIGHT-100))
+    top.attributes('-type', 'dialog')
+    top.title("Help")
+
+    canvas = tk.Canvas(top, width=350, height=HEIGHT-120)
+    canvas.place(x=25, y=10)
+
+    scrollbar = tk.Scrollbar(top, orient="vertical", command=canvas.yview)
+    scrollbar.pack(side="right", fill="y")
+
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    frame = tk.Frame(canvas)
+    canvas.create_window((0, 0), window=frame, anchor="nw")
+
+    frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    title = ttk.Style()
+    title.configure("Title.TLabel", font=("Helvetica", 20, "bold"))
+    
+    bold = ttk.Style()
+    bold.configure("Bold.TLabel", font=("Helvetica", 12, "bold"))
+
+    ttk.Label(frame, text="""Welcome to Physics Sim!""", style="Title.TLabel").pack()
+    ttk.Label(frame, text="""
+Physics Sim is a small project I have been working on to \
+simulate simple physical interactions. \
+These docs should help you get started. \
+Please have fun messing around in this editor!
+
+Check out the examples in the file dropdown \
+to see what's possible. \
+        """, wraplength=350).pack()
+
+    ttk.Label(frame, text="\n\nMasses:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+Everything in physics sim is based on masses. \
+To place a mass, enter mass mode by selecting it in the \
+left tray or by pressing 2 on the keyboard.
+
+Masses have several properties which can be adjusted:
+
+MASS -- This one is pretty self-explainatory. \
+The size of mass is proportional to sqrt(mass), so the \
+masses have a uniform 2d density.
+
+STATIC -- When checked, this will prevent a mass from moving at all. \
+Useful for anchoring springs or rods.
+
+ENERGY RETURN -- This is a constant that controls how inelastic collisions involving this mass will be. \
+Collision lines also have this property. In a collision, the product of the two energy return values \
+is the ratio of energy that will be conserved.
+
+X/Y VELOCITY -- The x and y velocity of the mass. Unitless.
+
+LEAVE TRAIL -- The length of the trail that the mass will leave behind it. \
+This has no effect on simulation, but can look really cool.
+        """, wraplength=350).pack()
+
+    ttk.Label(frame, text="\n\nSprings:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+Springs connect between masses. To place springs, enter the spring menu by \
+selecting it in the left tray of pressing 3, then select two masses.
+
+You can adjust the following properties of a spring:
+
+SPRING CONSTANT (K) -- This is the spring constant of the spring. The spring will apply forces based \
+on this constant and its displacement from equilibrium.
+
+DAMPING CONSTANT (C) -- Physics Sim uses non-ideal springs. This constant controls how much \
+energy is lost in the motion of the spring. A value of 0 makes an ideal spring.
+
+MANUAL EQUILIBRIUM LENGTH -- When checked, the springs equilibrium length can be set manually. \
+When left unchecked, the spring will default to the distance between its two masses when it was created.
+        """, wraplength=350).pack()
+    
+    ttk.Label(frame, text="\n\nRods:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+Rods also connect masses to each other, but they are rigid. \
+Place them by entering the rod menu by selecting it in the left \
+tray or by pressing 4, then select two masses. 
+
+Rods have no adjustable paramters, and will maintain their initial length. \
+Under the hood, rods are springs with very high spring constants. \
+This mean you may notice some displacement, especially under high forces.
+        """, wraplength=350).pack()
+    
+    ttk.Label(frame, text="\n\nCollision Lines:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+Collision lines are static lines that will collide with masses. \
+To place them, enter the line menu by selecting it in the left tray or by \
+pressing 5, then select two points on the screen. \
+The walls of the area are also collision lines, and their properties \
+can be adjusted.
+
+Lines have two adjustable properties:
+
+MU -- This is the coefficient of friction between this line and masses sliding on it.
+
+ENERGY RETURN -- This is a constant that controls how inelastic collisions involving this line will be. \
+Masses also have this property. In a collision, the product of the two energy return values \
+is the ratio of energy that will be conserved.
+        """, wraplength=350).pack()
+    
+    ttk.Label(frame, text="\n\nSelection Mode:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+Enter selection mode by selecting it in the left tray or by pressing 1.
+
+From this menu, you can select objects and adjust their properties or delete them. \
+You can also click and drag to move masses around.
+        """, wraplength=350).pack()
+    
+    ttk.Label(frame, text="\n\nOther Settings/Controls:", wraplength=350, style="Bold.TLabel").pack()
+    ttk.Label(frame, text="""\
+GRAVITY (DOWN) -- This controls the strength of gravity pulling masses downwards.
+
+GRAVITY (BETWEEN BODIES) -- This controls the strength of gravity between masses, \
+which can be used for orbital simulation and more.
+
+SNAP TO GRID -- When checked, mass and line placement will be contrained to a grid.
+
+WALLS -- Toggles whether the area is enclosed. 
+
+PARTICLE COLLISIONS -- Toggles whether masses colide with eachother. Mass/line collisions are uneffected.
+
+UNDO/REDO (Z/Y) -- Hitting z will undo, hitting y will redo.
+
+SAVING/LOADING -- Simulations can be saved as a .phys file. Hit s to save, \
+use the top bar to load.
+
+PLAY/PAUSE (SPACE) -- Pressing the play/pause button or the space key will start or stop simulation. \
+        """, wraplength=350).pack()
+
+
 def update_grid():
     global snap
     global snap_lines
@@ -675,6 +823,8 @@ def read_from_save(save):
 
     update_grid()
 
+    update_undo_hist(None)
+
 
 def save_to_file():
     file = fd.asksaveasfile(initialdir="saves", filetypes=[("Physics Sim Files", "*.phys"), ("All Files", "*.*")], defaultextension=".phys", mode='wb')
@@ -692,6 +842,11 @@ def load_from_file():
     file = fd.askopenfile(initialdir="saves", filetypes=[("Physics Sim Files", "*.phys"), ("All Files", "*.*")], mode='rb')
     ans = load(file)
     file.close()
+    read_from_save(ans)
+
+def open_example(name):
+    with open("examples/" + name, 'rb') as file:
+        ans = load(file)
     read_from_save(ans)
 
 def main():
@@ -723,15 +878,28 @@ def main():
 
     demos = tk.Menu(file, tearoff=0)
     file.add_cascade(label='Examples', menu=demos)
+    demos.add_command(label='Simple Orbit', command=lambda *args : open_example("simple_orbit.phys"))
+    demos.add_command(label='3 Body Orbit', command=lambda *args : open_example("3_body_orbit.phys"))
+    demos.add_command(label='Simple Pendulum', command=lambda *args : open_example("pendulum.phys"))
+    demos.add_command(label='Double Pendulum', command=lambda *args : open_example("double_pendulum.phys"))
+    demos.add_command(label='Newton\'s Cradle', command=lambda *args : open_example("newtons_cradle.phys"))
+    demos.add_command(label='Simple Springs.phys', command=lambda *args : open_example("simple_springs.phys"))
+    demos.add_command(label='Gas Simulation', command=lambda *args : open_example("gas.phys"))
+    demos.add_command(label='Liquid Simulation', command=lambda *args : open_example("liquid.phys"))
+    demos.add_command(label='Marble Track', command=lambda *args : open_example("marbles.phys"))
+    demos.add_command(label='Friction Demo', command=lambda *args : open_example("friction_spring.phys"))
+    demos.add_command(label='Cannon', command=lambda *args : open_example("cannon.phys"))
 
     edit = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='Edit', menu=edit)
     edit.add_command(label='Undo', command=handle_undo)
-    edit.add_command(label='Redo', command=None)
+    edit.add_command(label='Redo', command=handle_redo)
 
     view = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='View', menu=view)
     view.add_command()
+
+    menu_bar.add_command(label="Help", command = lambda *args : open_help_menu(root))
 
     root.config(menu = menu_bar)
 
