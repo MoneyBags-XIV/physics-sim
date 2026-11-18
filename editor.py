@@ -869,7 +869,7 @@ def main():
 
     file = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="File", menu=file)
-    file.add_command(label='Save', command=save_to_file)
+    file.add_command(label='Save (s)', command=save_to_file)
     file.add_command(label='Load', command=load_from_file)
 
     # file.entryconfig(0, state=tk.DISABLED)
@@ -892,8 +892,8 @@ def main():
 
     edit = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='Edit', menu=edit)
-    edit.add_command(label='Undo', command=handle_undo)
-    edit.add_command(label='Redo', command=handle_redo)
+    edit.add_command(label='Undo (z)', command=handle_undo)
+    edit.add_command(label='Redo (y)', command=handle_redo)
 
     view = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='View', menu=view)
